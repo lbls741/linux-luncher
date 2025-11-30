@@ -26,8 +26,9 @@ async fn get_prepare(app: tauri::AppHandle) -> Result<(), String> {
     let prefix_path = resource_dir.join("wine_prefix");
 
     // Run blocking operation in a separate thread
+    let prefix_path_clone = prefix_path.clone();
     let blocking_task = tauri::async_runtime::spawn_blocking(move || {
-        create_wine_prefix(&wine_dist_path, &prefix_path)
+        create_wine_prefix(&wine_dist_path, &prefix_path_clone)
     });
     blocking_task.await.map_err(|e| e.to_string())??; // The first ? is for JoinError, the second for the inner Result
 
@@ -131,5 +132,6 @@ pub fn run() {
             get_prepare,
             check_config_and_initialize
         ])
-        .run(tauri::generate_context!().expect("error while running tauri application"));
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }

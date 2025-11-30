@@ -7,10 +7,15 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies and build outputs
 node_modules
 dist
 dist-ssr
 *.local
+
+# Tauri build artifacts
+/src-tauri/gen/*
+/src-tauri/target/
 
 # Editor directories and files
 .vscode/*
@@ -25,6 +30,15 @@ dist-ssr
 .cursor
 .gemini
 
+# Markdown files (except README.md)
+*.md
+!README.md
 
-GEMINI.md
-/src-tauri/gen/*
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# OS generated files
+Thumbs.db
