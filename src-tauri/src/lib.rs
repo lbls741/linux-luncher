@@ -121,6 +121,44 @@ async fn check_config_and_initialize(app: tauri::AppHandle) -> Result<bool, Stri
     }
 }
 
+async fn bootstrap(app: tauri::AppHandle) -> Result<(), String> {
+    let config_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    if !config_dir.exists() {
+        fs::create_dir_all(&config_dir).map_err(|e| e.to_string())?;
+    }
+
+    let config_path = config_dir.join("config.yaml");
+
+    if config_path.exists() {
+        // Config file exists, open and close it (read and discard content)
+        let _ = fs::read_to_string(&config_path).map_err(|e| e.to_string())?;
+
+        // Call setup environment and game data functions
+        setup_environment(app.clone()).await?;
+        get_gamedata(app.clone()).await?;
+    } else {
+        // Config file does not exist, call initialize
+        initialize(app.clone()).await?;
+    }
+
+    Ok(())
+}
+
+async fn setup_environment(app: tauri::AppHandle) -> Result<(), String> {
+    // TODO: Implement environment setup
+    Ok(())
+}
+
+async fn get_gamedata(app: tauri::AppHandle) -> Result<(), String> {
+    // TODO: Implement game data retrieval
+    Ok(())
+}
+
+async fn initialize(app: tauri::AppHandle) -> Result<(), String> {
+    // TODO: Implement initial configuration
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -132,6 +170,15 @@ pub fn run() {
             get_prepare,
             check_config_and_initialize
         ])
+        .setup(|app| {
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = bootstrap(app_handle).await {
+                    eprintln!("Bootstrap error: {}", e);
+                }
+            });
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
