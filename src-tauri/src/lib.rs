@@ -155,7 +155,59 @@ async fn get_gamedata(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 async fn initialize(app: tauri::AppHandle) -> Result<(), String> {
-    // TODO: Implement initial configuration
+    // Get system information using tauri-plugin-os
+    let arch = tauri_plugin_os::arch();
+    let platform = tauri_plugin_os::platform();
+
+    // Check if system is supported
+    // Supported platforms: linux, macos
+    // Supported architectures: x86_64 (amd64), aarch64 (arm64)
+    let is_supported_platform = platform == "linux" || platform == "macos";
+    let is_supported_arch = arch == "x86_64" || arch == "aarch64";
+
+    if !is_supported_platform || !is_supported_arch {
+        // System not supported, tell frontend to show "reject run" interface
+        // No config file will be created
+        return Ok(());
+    }
+
+    // Map architecture to arm/x86
+    let system_arch = if arch.contains("arm") || arch.contains("aarch") {
+        "arm".to_string()
+    } else if arch.contains("x86") {
+        "x86".to_string()
+    } else {
+        arch.to_string()
+    };
+
+    // Map platform to Linux/MacOS/Other
+    let system_os = match platform {
+        "linux" => "Linux".to_string(),
+        "macos" => "MacOS".to_string(),
+        _ => platform.to_string(),
+    };
+
+    // Create config directory if it doesn't exist
+    let config_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    if !config_dir.exists() {
+        fs::create_dir_all(&config_dir).map_err(|e| e.to_string())?;
+    }
+
+    // Create config file with system information
+    let config_path = config_dir.join("config.yaml");
+    let initial_config = format!(
+        r#"luncher:
+  env_dir: ""
+  res_dir: ""
+  system_arch: "{}"
+  system_os: "{}"
+"#,
+        system_arch, system_os
+    );
+
+    fs::write(&config_path, initial_config).map_err(|e| e.to_string())?;
+
+    // Tell frontend to show "initialization" interface
     Ok(())
 }
 
@@ -165,6 +217,7 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_os::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             get_prepare,
